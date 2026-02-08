@@ -5,6 +5,12 @@ import BeforeAfter from './components/BeforeAfter';
 import PerformanceChart from './components/PerformanceChart';
 
 const GITHUB_URL = 'https://github.com/ecemguvener/Programmable-Cryptography';
+const PAGE_IDS = new Set(['home', 'demo', 'about']);
+
+function getPageFromHash(hashValue) {
+  const candidate = (hashValue || '').replace('#', '').trim().toLowerCase();
+  return PAGE_IDS.has(candidate) ? candidate : 'home';
+}
 
 function deriveDecision(creditScore, debtToIncome, riskScore) {
   if (creditScore >= 720 && debtToIncome <= 35 && riskScore <= 45) {
@@ -54,7 +60,7 @@ const DEMO_PRESETS = {
 };
 
 export default function App() {
-  const [activePage, setActivePage] = useState('home');
+  const [activePage, setActivePage] = useState(() => getPageFromHash(window.location.hash));
 
   const [creditScore, setCreditScore] = useState(720);
   const [debtToIncome, setDebtToIncome] = useState(32);
@@ -76,6 +82,19 @@ export default function App() {
     checkStatus()
       .then((status) => setBackendStatus(status))
       .catch(() => setError('Backend not available. Start the API server first!'));
+  }, []);
+
+  useEffect(() => {
+    if (!window.location.hash) {
+      window.history.replaceState(null, '', '#home');
+    }
+
+    function onHashChange() {
+      setActivePage(getPageFromHash(window.location.hash));
+    }
+
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   const status = useMemo(() => {
@@ -138,6 +157,11 @@ export default function App() {
     ];
   }, [report]);
 
+  function navigateTo(page) {
+    setActivePage(page);
+    window.history.replaceState(null, '', `#${page}`);
+  }
+
   function applyPreset(key) {
     const preset = DEMO_PRESETS[key];
     if (!preset) return;
@@ -145,7 +169,7 @@ export default function App() {
     setDebtToIncome(preset.debtToIncome);
     setAnnualIncome(preset.annualIncome);
     setPurpose(preset.purpose);
-    setActivePage('demo');
+    navigateTo('demo');
   }
 
   async function handleRun(e) {
@@ -173,7 +197,7 @@ export default function App() {
       });
       setLastProfile(profile);
       setReport(next);
-      setActivePage('demo');
+      navigateTo('demo');
     } catch (err) {
       setReport(null);
       setError(err.message || 'Run failed');
@@ -233,9 +257,9 @@ export default function App() {
       <main className="card">
         <header className="hero">
           <nav className="top-nav">
-            <button className={activePage === 'home' ? 'nav-btn active' : 'nav-btn'} onClick={() => setActivePage('home')}>Home</button>
-            <button className={activePage === 'demo' ? 'nav-btn active' : 'nav-btn'} onClick={() => setActivePage('demo')}>Demo</button>
-            <button className={activePage === 'about' ? 'nav-btn active' : 'nav-btn'} onClick={() => setActivePage('about')}>About</button>
+            <button className={activePage === 'home' ? 'nav-btn active' : 'nav-btn'} onClick={() => navigateTo('home')}>Home</button>
+            <button className={activePage === 'demo' ? 'nav-btn active' : 'nav-btn'} onClick={() => navigateTo('demo')}>Demo</button>
+            <button className={activePage === 'about' ? 'nav-btn active' : 'nav-btn'} onClick={() => navigateTo('about')}>About</button>
             <a className="nav-link" href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
           </nav>
 
@@ -245,11 +269,6 @@ export default function App() {
             Compute loan approval on encrypted data, then verify the result cryptographically.
           </p>
 
-          <div className="track-tags">
-            <span className="track-tag">ETH Oxford</span>
-            <span className="track-tag">DoraHacks Main Track</span>
-            <span className="track-tag">Programmable Cryptography</span>
-          </div>
 
           <div className="kpi-chips">
             <span className="kpi-chip">FHE: ✅ SEAL/TenSEAL</span>
@@ -280,25 +299,29 @@ export default function App() {
                 <li>Adaptive quantum defense mode simulation</li>
               </ul>
               <div className="actions">
-                <button type="button" onClick={() => setActivePage('demo')}>Run Demo</button>
+                <button type="button" onClick={() => navigateTo('demo')}>Run Demo</button>
               </div>
               <p className="hint">Takes ~10 seconds. No signup needed.</p>
             </article>
 
             <article className="panel">
               <h2>Architecture Pipeline</h2>
-              <div className="pipe-row">
-                <span>Client Input</span>
-                <span>Encrypt</span>
-                <span>FHE Compute</span>
-                <span>ZK Prove</span>
-                <span>Verify + Audit</span>
+              <div className="pipeline-arrow-row" aria-label="Pipeline flow">
+                <span className="pipeline-node">Client Input</span>
+                <span className="pipeline-arrow">→</span>
+                <span className="pipeline-node">Encrypt</span>
+                <span className="pipeline-arrow">→</span>
+                <span className="pipeline-node">FHE Compute</span>
+                <span className="pipeline-arrow">→</span>
+                <span className="pipeline-node">ZK Prove</span>
+                <span className="pipeline-arrow">→</span>
+                <span className="pipeline-node">Verify + Audit</span>
               </div>
               <h3 style={{ marginTop: '1rem' }}>Demo Presets</h3>
               <div className="preset-row">
-                <button type="button" onClick={() => applyPreset('fastApprove')}>Fast Approve Case</button>
-                <button type="button" onClick={() => applyPreset('reviewCase')}>Manual Review Case</button>
-                <button type="button" onClick={() => applyPreset('rejectCase')}>Reject Case</button>
+                <button type="button" className="preset-fast" onClick={() => applyPreset('fastApprove')}>Fast Approve Case</button>
+                <button type="button" className="preset-manual" onClick={() => applyPreset('reviewCase')}>Manual Review Case</button>
+                <button type="button" className="preset-reject" onClick={() => applyPreset('rejectCase')}>Reject Case</button>
               </div>
             </article>
           </section>
@@ -489,6 +512,14 @@ export default function App() {
             )}
           </>
         )}
+
+        <footer className="footer-tags">
+          <div className="track-tags">
+            <span className="track-tag">ETH Oxford</span>
+            <span className="track-tag">DoraHacks Main Track</span>
+            <span className="track-tag">Programmable Cryptography</span>
+          </div>
+        </footer>
       </main>
     </div>
   );
