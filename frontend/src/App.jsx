@@ -69,6 +69,14 @@ export default function App() {
           )}
         </header>
 
+        <section className="context-panel">
+          <h2>Context: Private Loan Pre-Approval</h2>
+          <p>
+            This workflow demonstrates how a bank can receive a verified decision signal without directly seeing raw applicant credentials.
+            Sensitive inputs are processed for computation while outputs remain verification-gated and auditable.
+          </p>
+        </section>
+
         <section className="layout">
           <form className="panel" onSubmit={handleRun}>
             <h2>Run FHE Computation</h2>
