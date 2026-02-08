@@ -18,9 +18,14 @@ A demonstration of **programmable cryptography** that:
 
 ## 🚀 Quick Start
 
+### Go to Project Folder
+```bash
+cd /Users/ecemguvener/Desktop/Programmable-Cryptography
+```
+
 ### Install Dependencies
 ```bash
-pip install tenseal numpy
+pip install -r requirements.txt
 ```
 
 ### Run Backend + UI (Full Demo)
@@ -28,6 +33,7 @@ Use two terminals from the repo root.
 
 **Terminal 1: Start backend API**
 ```bash
+cd /Users/ecemguvener/Desktop/Programmable-Cryptography
 pip install -r requirements.txt
 python3 app/api.py
 ```
@@ -35,7 +41,7 @@ Backend runs at `http://localhost:5001`
 
 **Terminal 2: Start React UI**
 ```bash
-cd frontend
+cd /Users/ecemguvener/Desktop/Programmable-Cryptography/frontend
 npm install
 npm run dev
 ```
