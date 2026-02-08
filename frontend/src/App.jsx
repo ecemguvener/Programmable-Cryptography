@@ -1,20 +1,46 @@
 import { useMemo, useState, useEffect } from 'react';
-import { downloadFile, runQuantumProof, toMarkdown, checkStatus } from './lib/quantumProof';
+import { downloadFile, runQuantumProof, toMarkdown, checkStatus, simulateQuantumAttack } from './lib/quantumProof';
+
+function deriveDecision(creditScore, debtToIncome, riskScore) {
+  if (creditScore >= 720 && debtToIncome <= 35 && riskScore <= 45) {
+    return {
+      status: 'ACCEPTED ✅',
+      reason: 'Strong profile and low computed risk',
+    };
+  }
+  if (creditScore >= 640 && debtToIncome <= 45 && riskScore <= 70) {
+    return {
+      status: 'MANUAL REVIEW ⚠️',
+      reason: 'Borderline profile; needs additional checks',
+    };
+  }
+  return {
+    status: 'NOT ACCEPTED ❌',
+    reason: 'Risk profile exceeds pre-approval threshold',
+  };
+}
 
 export default function App() {
-  const [sensitiveInput, setSensitiveInput] = useState('credit-score-750');
-  const [scenario, setScenario] = useState('web-demo');
+  const [creditScore, setCreditScore] = useState(720);
+  const [debtToIncome, setDebtToIncome] = useState(32);
+  const [annualIncome, setAnnualIncome] = useState(95000);
+  const [purpose, setPurpose] = useState('home-loan');
+
   const [fallback, setFallback] = useState(false);
   const [report, setReport] = useState(null);
+  const [lastProfile, setLastProfile] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState(null);
 
-  // Check backend status on mount
+  const [securityMode, setSecurityMode] = useState('NORMAL');
+  const [quantumEvent, setQuantumEvent] = useState(null);
+  const [quantumLoading, setQuantumLoading] = useState(false);
+
   useEffect(() => {
     checkStatus()
-      .then(status => setBackendStatus(status))
-      .catch(err => setError('Backend not available. Start the API server first!'));
+      .then((status) => setBackendStatus(status))
+      .catch(() => setError('Backend not available. Start the API server first!'));
   }, []);
 
   const status = useMemo(() => {
@@ -24,20 +50,81 @@ export default function App() {
     return report.proof.verificationResult ? 'Verified ✅' : 'Failed ❌';
   }, [error, loading, report]);
 
+  const bankDecision = useMemo(() => {
+    if (!report || !lastProfile) return null;
+
+    if (report.computeResult.preapprovalDecision) {
+      return {
+        status: `${report.computeResult.preapprovalDecision.toUpperCase()} ${report.computeResult.preapprovalDecision === 'approve' ? '✅' : report.computeResult.preapprovalDecision === 'review' ? '⚠️' : '❌'}`,
+        reason: report.computeResult.decisionReason || 'Decision returned by backend',
+      };
+    }
+
+    return deriveDecision(
+      lastProfile.creditScore,
+      lastProfile.debtToIncome,
+      report.computeResult.riskReductionPercent
+    );
+  }, [report, lastProfile]);
+
   async function handleRun(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
     setReport(null);
 
+    const profile = {
+      creditScore: Number(creditScore),
+      debtToIncome: Number(debtToIncome),
+      annualIncome: Number(annualIncome),
+      purpose,
+    };
+
+    const sensitiveInput = `loan::${profile.creditScore}::${profile.debtToIncome}::${profile.annualIncome}::${profile.purpose}`;
+
     try {
-      const next = await runQuantumProof({ sensitiveInput, scenario, forceFallback: fallback });
+      const next = await runQuantumProof({
+        sensitiveInput,
+        scenario: 'private-loan-preapproval',
+        forceFallback: fallback,
+        loanProfile: profile,
+        securityMode,
+      });
+      setLastProfile(profile);
       setReport(next);
     } catch (err) {
       setReport(null);
       setError(err.message || 'Run failed');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleQuantumSimulation(attackType) {
+    setError('');
+    setQuantumLoading(true);
+
+    try {
+      const simulation = await simulateQuantumAttack({ attackType, currentMode: securityMode });
+      setSecurityMode(simulation.new_mode);
+      setQuantumEvent(simulation);
+
+      // Reflect mode transition in already-visible results so user sees immediate linkage.
+      setReport((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          computeResult: {
+            ...prev.computeResult,
+            securityMode: simulation.new_mode,
+            securityResponse: simulation.auto_response,
+          },
+        };
+      });
+    } catch (err) {
+      setError(err.message || 'Quantum simulation failed');
+    } finally {
+      setQuantumLoading(false);
     }
   }
 
@@ -57,9 +144,9 @@ export default function App() {
       <main className="card">
         <header className="hero">
           <p className="kicker">QuantumProof Ops</p>
-          <h1>🔐 Real FHE Computation</h1>
+          <h1>🔐 QuantumProof Ops - Real FHE Computation</h1>
           <p className="sub">
-            Privacy-preserving computation using <strong>Microsoft SEAL</strong> (FHE) + Zero-Knowledge Proofs + Quantum-Resistant Primitives
+            Privacy-preserving computation using <strong>Microsoft SEAL</strong> (FHE) + verifiable computation layer (Circom/SNARK-compatible) + quantum-resistant primitives.
           </p>
 
           {backendStatus && (
@@ -72,33 +159,87 @@ export default function App() {
         <section className="context-panel">
           <h2>Context: Private Loan Pre-Approval</h2>
           <p>
-            This workflow demonstrates how a bank can receive a verified decision signal without directly seeing raw applicant credentials.
-            Sensitive inputs are processed for computation while outputs remain verification-gated and auditable.
+            Traditional pre-approval asks applicants to hand over sensitive financial credentials. This workflow shows a privacy-preserving alternative.
           </p>
+          <ul>
+            <li><strong>Bank sees:</strong> decision signal, verification status, proof hash, and runtime metrics.</li>
+            <li><strong>Bank does not see:</strong> raw applicant credentials in exported artifacts.</li>
+            <li><strong>Trust model:</strong> results are verification-gated, so tampered output should fail verification.</li>
+          </ul>
+        </section>
+
+        <section className="quantum-panel">
+          <h2>Quantum Attack Simulator</h2>
+          <p className="quantum-sub">Security mode transitions: NORMAL → HYBRID → POST_QUANTUM</p>
+          <div className="quantum-row">
+            <span className={`mode-chip mode-${securityMode.toLowerCase()}`}>Mode: {securityMode}</span>
+            <button type="button" onClick={() => handleQuantumSimulation('grover')} disabled={quantumLoading || !backendStatus}>
+              Simulate Grover Attack
+            </button>
+            <button type="button" onClick={() => handleQuantumSimulation('shor')} disabled={quantumLoading || !backendStatus}>
+              Simulate Shor Attack
+            </button>
+          </div>
+
+          {quantumEvent && (
+            <div className="quantum-result">
+              <p><strong>Detection:</strong> {quantumEvent.detector_summary}</p>
+              <p><strong>Transition:</strong> {quantumEvent.previous_mode} → {quantumEvent.new_mode}</p>
+              <p><strong>Response:</strong> {quantumEvent.auto_response}</p>
+              <p><strong>PQ Stack:</strong> {quantumEvent.post_quantum_stack.join(', ')}</p>
+              <p><strong>Tip:</strong> Rerun computation to apply full mode effect to runtime/overhead.</p>
+            </div>
+          )}
         </section>
 
         <section className="layout">
           <form className="panel" onSubmit={handleRun}>
-            <h2>Run FHE Computation</h2>
+            <h2>Applicant Inputs (Private)</h2>
 
             <label>
-              Sensitive Input (e.g., credit-score-750)
+              Credit Score
               <input
-                type="text"
-                value={sensitiveInput}
-                onChange={(e) => setSensitiveInput(e.target.value)}
+                type="number"
+                min="300"
+                max="850"
+                value={creditScore}
+                onChange={(e) => setCreditScore(Number(e.target.value))}
                 required
-                placeholder="credit-score-750"
               />
             </label>
 
             <label>
-              Scenario
+              Debt-to-Income (%)
               <input
-                value={scenario}
-                onChange={(e) => setScenario(e.target.value)}
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={debtToIncome}
+                onChange={(e) => setDebtToIncome(Number(e.target.value))}
                 required
-                placeholder="web-demo"
+              />
+            </label>
+
+            <label>
+              Annual Income (USD)
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={annualIncome}
+                onChange={(e) => setAnnualIncome(Number(e.target.value))}
+                required
+              />
+            </label>
+
+            <label>
+              Loan Purpose
+              <input
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+                required
+                placeholder="home-loan"
               />
             </label>
 
@@ -127,6 +268,20 @@ export default function App() {
 
             {report && (
               <>
+                {bankDecision && (
+                  <>
+                    <h3 style={{ marginTop: '1rem' }}>Bank Pre-Approval</h3>
+                    <dl>
+                      <dt>Status</dt>
+                      <dd>{bankDecision.status}</dd>
+
+                      <dt>Reason</dt>
+                      <dd>{bankDecision.reason}</dd>
+                    </dl>
+                  </>
+                )}
+
+                <h3 style={{ marginTop: '1rem' }}>Computation Results</h3>
                 <dl>
                   <dt>Run ID</dt>
                   <dd>{report.runId}</dd>
@@ -139,6 +294,15 @@ export default function App() {
 
                   <dt>Verification</dt>
                   <dd>{report.proof.verificationResult ? '✅ Verified' : '❌ Failed'}</dd>
+
+                  <dt>Security Mode</dt>
+                  <dd>{report.computeResult.securityMode}</dd>
+
+                  <dt>Defense Profile</dt>
+                  <dd>{report.computeResult.defenseProfile}</dd>
+
+                  <dt>Security Response</dt>
+                  <dd>{report.computeResult.securityResponse}</dd>
 
                   <dt>Total Runtime</dt>
                   <dd>{report.benchmark.runtimeMs} ms</dd>

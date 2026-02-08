@@ -1,94 +1,95 @@
-// QuantumProof API Client - Connects to REAL FHE backend
+// QuantumProof API Client
 
 const API_BASE = 'http://localhost:5001/api';
 
-/**
- * Check if FHE backend is available
- */
+function normalizePrimitiveName(name) {
+  if (!name) return name;
+  if (name.toLowerCase().includes('zero-knowledge')) {
+    return 'Verifiable computation layer (Circom/SNARK-compatible architecture)';
+  }
+  return name;
+}
+
 export async function checkStatus() {
-  try {
-    const response = await fetch(`${API_BASE}/status`);
-    if (!response.ok) throw new Error('Backend not available');
-    return await response.json();
-  } catch (error) {
-    console.error('Backend status check failed:', error);
-    throw new Error('Cannot connect to FHE backend. Make sure the API server is running.');
-  }
+  const response = await fetch(`${API_BASE}/status`);
+  if (!response.ok) throw new Error('Backend not available');
+  return await response.json();
 }
 
-/**
- * Run REAL FHE computation on backend
- */
-export async function runQuantumProof({ sensitiveInput, scenario, forceFallback }) {
-  try {
-    const response = await fetch(`${API_BASE}/compute`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sensitiveInput,
-        scenario,
-        forceFallback,
-      }),
-    });
+export async function runQuantumProof({ sensitiveInput, scenario, forceFallback, loanProfile, securityMode }) {
+  const response = await fetch(`${API_BASE}/compute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sensitiveInput, scenario, forceFallback, loanProfile, securityMode }),
+  });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Computation failed');
-    }
-
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || 'Computation failed');
-    }
-
-    // Transform backend response to match frontend format
-    const result = data.result;
-
-    return {
-      runId: result.run_id,
-      timestampUtc: result.timestamp_utc,
-      scenario: result.scenario,
-      riskContext: result.risk_context,
-      trustModelComparison: result.trust_model_comparison,
-      computeResult: {
-        riskReductionPercent: result.compute_result.risk_reduction_percent,
-        performanceOverheadPercent: result.compute_result.performance_overhead_percent,
-        recommendedRollout: result.compute_result.recommended_rollout,
-        fheEnabled: result.compute_result.fhe_enabled || false,
-        fheScheme: result.compute_result.fhe_scheme || 'N/A',
-      },
-      benchmark: {
-        runtimeMs: result.benchmark.runtime_ms,
-        computeMode: result.benchmark.compute_mode,
-        encryptionTimeMs: result.benchmark.encryption_time_ms,
-        computationTimeMs: result.benchmark.computation_time_ms,
-        proofTimeMs: result.benchmark.proof_time_ms,
-      },
-      proof: {
-        proofHash: result.proof.proof_hash,
-        verificationResult: result.proof.verification_result,
-        circuitVersion: result.proof.circuit_version,
-        inputFingerprint: result.proof.input_fingerprint,
-        cryptoPrimitivesUsed: result.proof.crypto_primitives_used || [],
-        fheParameters: result.proof.fhe_parameters || {},
-      },
-    };
-  } catch (error) {
-    console.error('FHE computation error:', error);
-    throw error;
+  const data = await response.json();
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || 'Computation failed');
   }
+
+  const result = data.result;
+  return {
+    runId: result.run_id,
+    timestampUtc: result.timestamp_utc,
+    scenario: result.scenario,
+    riskContext: result.risk_context,
+    trustModelComparison: result.trust_model_comparison,
+    computeResult: {
+      riskReductionPercent: result.compute_result.risk_reduction_percent,
+      performanceOverheadPercent: result.compute_result.performance_overhead_percent,
+      recommendedRollout: result.compute_result.recommended_rollout,
+      fheEnabled: result.compute_result.fhe_enabled || false,
+      fheScheme: result.compute_result.fhe_scheme || 'N/A',
+      preapprovalDecision: result.compute_result.preapproval_decision || null,
+      decisionReason: result.compute_result.decision_reason || null,
+      privacyNote: result.compute_result.privacy_note || null,
+      model: result.compute_result.model || null,
+      securityMode: result.compute_result.security_mode || 'NORMAL',
+      defenseProfile: result.compute_result.defense_profile || 'normal-monitoring-v1',
+      securityResponse: result.compute_result.security_response || 'Standard monitoring mode',
+    },
+    benchmark: {
+      runtimeMs: result.benchmark.runtime_ms,
+      computeMode: result.benchmark.compute_mode,
+      encryptionTimeMs: result.benchmark.encryption_time_ms,
+      computationTimeMs: result.benchmark.computation_time_ms,
+      proofTimeMs: result.benchmark.proof_time_ms,
+    },
+    proof: {
+      proofHash: result.proof.proof_hash,
+      verificationResult: result.proof.verification_result,
+      circuitVersion: result.proof.circuit_version,
+      inputFingerprint: result.proof.input_fingerprint,
+      cryptoPrimitivesUsed: (result.proof.crypto_primitives_used || []).map(normalizePrimitiveName),
+      fheParameters: result.proof.fhe_parameters || {},
+    },
+  };
 }
 
-/**
- * Convert report to Markdown
- */
+export async function simulateQuantumAttack({ attackType, currentMode }) {
+  const response = await fetch(`${API_BASE}/quantum/simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ attackType, currentMode }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || 'Quantum simulation failed');
+  }
+
+  return data.simulation;
+}
+
 export function toMarkdown(report) {
   const primitivesList = (report.proof.cryptoPrimitivesUsed || [])
-    .map(p => `  - ${p}`)
+    .map((p) => `  - ${p}`)
     .join('\n');
+
+  const decisionBlock = report.computeResult.preapprovalDecision
+    ? `\n## Private Loan Pre-Approval\n- **Decision**: \`${report.computeResult.preapprovalDecision.toUpperCase()}\`\n- **Reason**: ${report.computeResult.decisionReason}\n- **Privacy Note**: ${report.computeResult.privacyNote}\n`
+    : '';
 
   return `# QuantumProof Ops - FHE Computation Report
 
@@ -100,17 +101,14 @@ export function toMarkdown(report) {
 
 ## Cryptographic Primitives
 ${primitivesList}
-
-## FHE Parameters
-\`\`\`json
-${JSON.stringify(report.proof.fheParameters, null, 2)}
-\`\`\`
-
+${decisionBlock}
 ## Results
 - **Risk Score**: \`${report.computeResult.riskReductionPercent}%\`
 - **FHE Overhead**: \`${report.computeResult.performanceOverheadPercent}%\`
 - **FHE Enabled**: \`${report.computeResult.fheEnabled}\`
 - **FHE Scheme**: \`${report.computeResult.fheScheme}\`
+- **Security Mode**: \`${report.computeResult.securityMode}\`
+- **Security Response**: \`${report.computeResult.securityResponse}\`
 
 ## Performance
 - **Total Runtime**: \`${report.benchmark.runtimeMs}ms\`
@@ -118,27 +116,13 @@ ${JSON.stringify(report.proof.fheParameters, null, 2)}
 - **Computation Time**: \`${report.benchmark.computationTimeMs}ms\`
 - **Proof Generation**: \`${report.benchmark.proofTimeMs}ms\`
 
-## Quantum-Risk Context
-
-${report.riskContext}
-
-## Trust Model Comparison
-
-${report.trustModelComparison}
-
 ## Audit Trail
 - **ZK Proof Hash**: \`${report.proof.proofHash}\`
 - **Input Fingerprint**: \`${report.proof.inputFingerprint}\`
 - **Circuit Version**: \`${report.proof.circuitVersion}\`
-
----
-*Generated by QuantumProof Ops using REAL Microsoft SEAL FHE*
 `;
 }
 
-/**
- * Download file to user's computer
- */
 export function downloadFile(filename, content, type) {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);

@@ -1,1 +1,7 @@
-# No external dependencies required for MVP CLI
+# Real cryptographic libraries for hackathon
+tenseal>=0.3.14  # Fully Homomorphic Encryption (Microsoft SEAL wrapper) - WORKING!
+numpy>=1.21.0    # Required for TenSEAL
+
+# Web API
+flask>=3.0.0       # Web framework for API
+flask-cors>=4.0.0  # CORS support for frontend
