@@ -258,15 +258,15 @@ export default function App() {
         <header className="hero">
           <nav className="top-nav">
             <button className={activePage === 'home' ? 'nav-btn active' : 'nav-btn'} onClick={() => navigateTo('home')}>Home</button>
-            <button className={activePage === 'demo' ? 'nav-btn active' : 'nav-btn'} onClick={() => navigateTo('demo')}>Demo</button>
             <button className={activePage === 'about' ? 'nav-btn active' : 'nav-btn'} onClick={() => navigateTo('about')}>About</button>
+            <button className={activePage === 'demo' ? 'nav-btn active' : 'nav-btn'} onClick={() => navigateTo('demo')}>Demo</button>
             <a className="nav-link" href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
           </nav>
 
           <p className="kicker">QuantumProof Ops</p>
           <h1>🔐 QuantumProof Ops - Real FHE Computation</h1>
           <p className="sub punchline">
-            Compute loan approval on encrypted data, then verify the result cryptographically.
+            Quantum-resilient programmable cryptography for private, verifiable decision systems.
           </p>
 
 
@@ -328,25 +328,80 @@ export default function App() {
         )}
 
         {activePage === 'about' && (
-          <section className="context-panel">
-            <h2>About</h2>
+          <section className="context-panel how-panel">
+            <p className="section-kicker">How It Works</p>
+            <h2>Why QuantumProof Ops Exists</h2>
+            <p className="how-summary">
+              QuantumProof Ops exists because today&apos;s financial and blockchain infrastructure was not built for the quantum era.
+            </p>
+            <p className="how-summary">
+              Advances in quantum computing threaten widely used cryptographic assumptions, especially RSA/ECC style systems and
+              legacy signature models. At the same time, institutions still need to make real decisions on sensitive data today
+              without exposing credentials or trusting black-box execution.
+            </p>
+            <p className="how-summary">
+              QuantumProof Ops provides a forward-compatible cryptographic execution layer that computes directly on encrypted
+              inputs, cryptographically verifies correctness, and outputs a minimal, auditable decision signal without revealing
+              raw applicant data.
+            </p>
 
-            <h3>Problem</h3>
-            <p>Institutions need trustable decisions on sensitive data without collecting raw credentials.</p>
+            <div className="threat-note">
+              <h3>Quantum Threat Model (Precise)</h3>
+              <ul className="threat-list">
+                <li>Shor-style risk targets RSA/ECC assumptions and some legacy signature systems.</li>
+                <li>Grover-style speedups impact brute-force and hashing asymmetrically, not instant breakage.</li>
+                <li>Blockchains remain useful, but trust assumptions must evolve toward quantum-resilient stacks.</li>
+              </ul>
+            </div>
 
-            <h3>How QuantumProof Works</h3>
-            <ul>
-              <li>Encrypted/private computation using FHE.</li>
-              <li>Verifiable proof layer for correctness checks.</li>
-              <li>Audit artifacts: proof hash, verification status, runtime metrics.</li>
+            <h3 className="features-title">Built for the Post-Quantum World</h3>
+            <p className="how-summary">
+              QuantumProof Ops is designed as quantum-aware infrastructure, not a patch on legacy systems.
+            </p>
+            <p className="how-summary">
+              Instead of relying on a single cryptographic assumption, the system composes independent security layers to reduce
+              systemic risk as cryptography evolves.
+            </p>
+            <ul className="risk-list">
+              <li>Encrypted computation (FHE) keeps sensitive data hidden, even if execution environments are compromised.</li>
+              <li>Verifiable computation layer ensures outputs are correct and flags silent manipulation.</li>
+              <li>Mode-aware simulation models behavior as assumptions weaken, enabling adaptive responses.</li>
+              <li>Audit-first design exports artifacts that remain inspectable and reproducible over time.</li>
             </ul>
+            <p className="how-summary">
+              Rather than assuming cryptography never fails, QuantumProof Ops is designed for graceful, provable security under change.
+            </p>
 
-            <h3>What's Real in This Demo</h3>
-            <ul>
-              <li>Microsoft SEAL/TenSEAL encrypted computation path.</li>
-              <li>Groth16 artifact pipeline support with Circom/snarkjs.</li>
-              <li>Security mode transitions: NORMAL, HYBRID, POST_QUANTUM.</li>
-            </ul>
+            <h3 className="features-title">How It Works (Execution Path)</h3>
+            <div className="how-steps">
+              <div className="how-step"><strong>1.</strong> Sensitive inputs are submitted locally and never exposed.</div>
+              <div className="how-step"><strong>2.</strong> Inputs are fingerprinted and encrypted using fully homomorphic encryption.</div>
+              <div className="how-step"><strong>3.</strong> Decision logic executes directly on encrypted data.</div>
+              <div className="how-step"><strong>4.</strong> A cryptographic proof verifies computation correctness.</div>
+              <div className="how-step"><strong>5.</strong> Only a minimal decision signal and audit hash are released.</div>
+            </div>
+
+            <h3 className="features-title">Core Features</h3>
+            <div className="feature-grid">
+              <article className="feature-card">
+                <h4>Private Computation</h4>
+                <p>Runs loan logic while inputs stay encrypted using Microsoft SEAL/TenSEAL.</p>
+              </article>
+              <article className="feature-card">
+                <h4>Verification Gate</h4>
+                <p>Only verified results are shown. Failed verification blocks decision output.</p>
+              </article>
+              <article className="feature-card">
+                <h4>Proof + Audit Export</h4>
+                <p>Exports proof hash, verification status, runtime metrics, and run identifier.</p>
+              </article>
+              <article className="feature-card">
+                <h4>Quantum-Ready Modes</h4>
+                <p>Simulates security transitions: NORMAL, HYBRID, and POST_QUANTUM.</p>
+              </article>
+            </div>
+
+            <p className="closing-line">QuantumProof Ops doesn&apos;t ask institutions to trust the future. It lets them verify it.</p>
           </section>
         )}
 
