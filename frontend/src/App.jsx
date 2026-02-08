@@ -2,21 +2,19 @@ import { useMemo, useState, useEffect } from 'react';
 import { downloadFile, runQuantumProof, toMarkdown, checkStatus } from './lib/quantumProof';
 
 export default function App() {
-  const [creditScore, setCreditScore] = useState(720);
-  const [debtToIncome, setDebtToIncome] = useState(32);
-  const [annualIncome, setAnnualIncome] = useState(95000);
-  const [purpose, setPurpose] = useState('home-loan');
-
+  const [sensitiveInput, setSensitiveInput] = useState('credit-score-750');
+  const [scenario, setScenario] = useState('web-demo');
   const [fallback, setFallback] = useState(false);
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState(null);
 
+  // Check backend status on mount
   useEffect(() => {
     checkStatus()
-      .then((status) => setBackendStatus(status))
-      .catch(() => setError('Backend not available. Start API: python3 app/api.py'));
+      .then(status => setBackendStatus(status))
+      .catch(err => setError('Backend not available. Start the API server first!'));
   }, []);
 
   const status = useMemo(() => {
@@ -33,16 +31,7 @@ export default function App() {
     setReport(null);
 
     try {
-      const next = await runQuantumProof({
-        scenario: 'private-loan-preapproval',
-        forceFallback: fallback,
-        loanProfile: {
-          creditScore,
-          debtToIncome,
-          annualIncome,
-          purpose,
-        },
-      });
+      const next = await runQuantumProof({ sensitiveInput, scenario, forceFallback: fallback });
       setReport(next);
     } catch (err) {
       setReport(null);
@@ -68,10 +57,11 @@ export default function App() {
       <main className="card">
         <header className="hero">
           <p className="kicker">QuantumProof Ops</p>
-          <h1>Private Loan Pre-Approval</h1>
+          <h1>🔐 Real FHE Computation</h1>
           <p className="sub">
-            Bank receives a verified decision signal without seeing raw financial credentials.
+            Privacy-preserving computation using <strong>Microsoft SEAL</strong> (FHE) + Zero-Knowledge Proofs + Quantum-Resistant Primitives
           </p>
+
           {backendStatus && (
             <div style={{ marginTop: '1rem', padding: '0.5rem', background: backendStatus.fhe_available ? '#0f4' : '#f80', borderRadius: '4px', fontSize: '0.9rem' }}>
               <strong>{backendStatus.fhe_available ? '✅ FHE Available' : '⚠️ FHE Unavailable'}</strong> - {backendStatus.library}
@@ -79,84 +69,99 @@ export default function App() {
           )}
         </header>
 
-        <section className="context-panel">
-          <h2>Why This Is Useful</h2>
-          <p>
-            Traditional pre-approval requires sharing sensitive financial credentials with a bank.
-            This demo shows a privacy-preserving alternative where the bank receives a decision signal,
-            verification proof, and audit metadata without viewing raw applicant inputs.
-          </p>
-          <ul>
-            <li>Applicant data is processed privately during computation.</li>
-            <li>Output is verification-gated to reduce tampering risk.</li>
-            <li>Exports include proof hash and metrics, not raw credentials.</li>
-          </ul>
-        </section>
-
         <section className="layout">
           <form className="panel" onSubmit={handleRun}>
-            <h2>Applicant Inputs (Private)</h2>
+            <h2>Run FHE Computation</h2>
 
             <label>
-              Credit Score
-              <input type="number" min="300" max="850" value={creditScore} onChange={(e) => setCreditScore(Number(e.target.value))} required />
+              Sensitive Input (e.g., credit-score-750)
+              <input
+                type="text"
+                value={sensitiveInput}
+                onChange={(e) => setSensitiveInput(e.target.value)}
+                required
+                placeholder="credit-score-750"
+              />
             </label>
 
             <label>
-              Debt-to-Income (%)
-              <input type="number" min="0" max="100" step="0.1" value={debtToIncome} onChange={(e) => setDebtToIncome(Number(e.target.value))} required />
-            </label>
-
-            <label>
-              Annual Income (USD)
-              <input type="number" min="1" step="1" value={annualIncome} onChange={(e) => setAnnualIncome(Number(e.target.value))} required />
-            </label>
-
-            <label>
-              Loan Purpose
-              <input value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
+              Scenario
+              <input
+                value={scenario}
+                onChange={(e) => setScenario(e.target.value)}
+                required
+                placeholder="web-demo"
+              />
             </label>
 
             <label className="check-row">
               <input type="checkbox" checked={fallback} onChange={(e) => setFallback(e.target.checked)} />
-              Fallback mode (disable FHE)
+              Disable FHE (fallback mode)
             </label>
 
             <button type="submit" disabled={loading || !backendStatus}>
-              {loading ? 'Computing...' : 'Run Private Pre-Approval'}
+              {loading ? 'Computing...' : 'Run FHE Workflow'}
             </button>
           </form>
 
           <aside className="panel result">
-            <h2>Decision Output</h2>
+            <h2>Results</h2>
             <div className={`status ${error ? 'error' : report ? 'ok' : ''}`}>{status}</div>
+
             {error && <p className="error-text">{error}</p>}
+
+            {loading && (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <div className="spinner"></div>
+                <p>Running real FHE computation...</p>
+              </div>
+            )}
 
             {report && (
               <>
                 <dl>
-                  <dt>Decision</dt>
-                  <dd style={{ textTransform: 'uppercase', fontWeight: 700 }}>{report.computeResult.preapprovalDecision || 'n/a'}</dd>
+                  <dt>Run ID</dt>
+                  <dd>{report.runId}</dd>
 
-                  <dt>Reason</dt>
-                  <dd>{report.computeResult.decisionReason || 'No reason available'}</dd>
+                  <dt>FHE Enabled</dt>
+                  <dd>{report.computeResult.fheEnabled ? '✅ Yes' : '❌ No'}</dd>
 
-                  <dt>Privacy</dt>
-                  <dd>{report.computeResult.privacyNote || 'No raw credentials stored in artifacts'}</dd>
+                  <dt>FHE Scheme</dt>
+                  <dd>{report.computeResult.fheScheme}</dd>
 
                   <dt>Verification</dt>
                   <dd>{report.proof.verificationResult ? '✅ Verified' : '❌ Failed'}</dd>
 
-                  <dt>Runtime</dt>
+                  <dt>Total Runtime</dt>
                   <dd>{report.benchmark.runtimeMs} ms</dd>
 
-                  <dt>Proof Hash</dt>
-                  <dd style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>{report.proof.proofHash}</dd>
+                  <dt>Encryption Time</dt>
+                  <dd>{report.benchmark.encryptionTimeMs} ms</dd>
+
+                  <dt>Computation Time</dt>
+                  <dd>{report.benchmark.computationTimeMs} ms</dd>
+
+                  <dt>Risk Score</dt>
+                  <dd>{report.computeResult.riskReductionPercent}%</dd>
+
+                  <dt>FHE Overhead</dt>
+                  <dd>{report.computeResult.performanceOverheadPercent}%</dd>
                 </dl>
 
+                <h3 style={{ marginTop: '1.5rem' }}>Crypto Primitives Used</h3>
+                <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
+                  {report.proof.cryptoPrimitivesUsed.map((p, i) => (
+                    <li key={i} style={{ fontSize: '0.9rem' }}>{p}</li>
+                  ))}
+                </ul>
+
                 <div className="actions">
-                  <button type="button" onClick={exportJson}>Export JSON</button>
-                  <button type="button" onClick={exportMd}>Export Markdown</button>
+                  <button type="button" onClick={exportJson}>
+                    Export JSON
+                  </button>
+                  <button type="button" onClick={exportMd}>
+                    Export Markdown
+                  </button>
                 </div>
               </>
             )}
