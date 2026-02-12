@@ -1,3 +1,4 @@
+### Built at ETH Oxford Hackathon 2026 — Top 3 Finalist
 # QuantumProof Ops — Verifiable Compute on Encrypted Data (FHE + ZK) with Quantum-Aware Modes
 
 **QuantumProof Ops** is a hackathon-ready prototype showing how programmable cryptography can power sensitive decisions without exposing raw user credentials.
@@ -8,6 +9,12 @@ It combines:
 - **Quantum-aware security modes** to demonstrate how trust systems should adapt as cryptographic assumptions evolve
 
 > **Thesis:** Don’t trust computation. Verify it.
+> This project focuses on verifiable architecture and developer tooling rather than production financial deployment.
+---
+
+## Live Demo & Walkthrough
+🌐 Live Demo: https://quantumproofops.vercel.app/#demo  
+🎥 Demo video: https://youtu.be/Xf_L0WFOvyE
 
 ---
 
@@ -51,8 +58,8 @@ A lender (or verifier) can receive a **verifiable decision signal** and **audit 
 
 ### 1) Clone and enter repo
 ```bash
-git clone https://github.com/ecemguvener/Programmable-Cryptography.git
-cd Programmable-Cryptography
+git clone https://github.com/ecemguvener/QuantumProof-Ops-Programmable-Cryptography-.git
+cd QuantumProof-Ops-Programmable-Cryptography-
 ```
 
 ### 2) Start backend
@@ -74,7 +81,7 @@ npm run dev
 
 Frontend runs at: `http://localhost:5173`
 
-Open the UI and go to **Demo**.
+Open the UI and go to **Demo** tabb.
 
 ---
 
