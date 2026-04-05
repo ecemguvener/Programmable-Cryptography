@@ -1,7 +1,7 @@
 ### Built at ETH The University of Oxford Hackathon 2026 — Top 3 Finalist
 # QuantumProof Ops — Verifiable Compute on Encrypted Data (FHE + ZK) with Quantum-Aware Modes
 
-**QuantumProof Ops** is a hackathon-ready prototype showing how programmable cryptography can power sensitive decisions without exposing raw user credentials.
+**QuantumProof Ops** is a programmable cryptography can power sensitive decisions without exposing raw user credentials.
 
 It combines:
 - **FHE (Fully Homomorphic Encryption)** for computation on encrypted data (Microsoft SEAL via TenSEAL)
